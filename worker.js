@@ -21,22 +21,22 @@ function get() {
 		res.on('end', (res) => {
 			let gv = parseGV(body);
 			redis.set('gv:lastPos', lastPos);
-			let trackdata = JSON.parse(redis.get('gv:trackdata'));
-
-			if (trackdata){
-				for (id in gv) {
-					if (trackdata[id]){
-						Array.prototype.push.apply(trackdata[id], gv[id]);
-					}else{
-						trackdata[id] = gv[id];
+			redis.get('gv:trackdata', function (err, val){
+				let trackdata = JSON.parse(val);
+				if (trackdata){
+					for (let id in gv) {
+						if (trackdata[id]){
+							Array.prototype.push.apply(trackdata[id], gv[id]);
+						}else{
+							trackdata[id] = gv[id];
+						}
 					}
+				}else{
+					trackdata = gv;
 				}
-			}else{
-				trackdata = gv;
-			}
-			redis.set('gv:trackdata', JSON.stringify(trackdata));
-
-			return;
+				redis.set('gv:trackdata', JSON.stringify(trackdata));
+				console.log('update: ' + lastPos);
+			});
 		});
 	}).on('error', (e) => {
 		console.log(e.message);
