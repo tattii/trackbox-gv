@@ -7,15 +7,25 @@ const path = require('path');
 const PORT = process.env.PORT || 3000;
 const INDEX = path.join(__dirname, 'index.html');
 
-const server = express()
+const redis = require('redis').createClient(process.env.REDIS_URL);
+
+const app = express();
+const server = app
   .use((req, res) => res.sendFile(INDEX) )
+  .use(express.static('public'))
   .listen(PORT, () => console.log(`Listening on ${ PORT }`));
 
 const io = socketIO(server);
 
 io.on('connection', (socket) => {
   console.log('Client connected');
+
+  // send current data
+
   socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
-setInterval(() => io.emit('time', new Date().toTimeString()), 1000);
+io.on('update-data', (data) => {
+  io.emit('update', data);
+});
+
