@@ -29,6 +29,7 @@ io.on('connection', (socket) => {
 });
 
 io.on('update-data', (data) => {
+  console.log('update-data');
   io.emit('update', data);
 });
 

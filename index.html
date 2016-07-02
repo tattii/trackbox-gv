@@ -84,6 +84,25 @@
 				}
 			});
 
+			socket.on('update', function(data) {
+				consoe.log('update');
+				newdata = JSON.parse(data);
+				console.log(data);
+				for (var id in newdata) {
+					moveCurrentPos(id, newdata[id][newdata[id].length - 1]);
+
+					if (trackdata[id]){
+						drawPath(id, [trackdata[id][trackdata[id].length - 1], newdata[id][0]]);
+					}
+					drawPath(id, newdata[id]);
+
+					if (trackdata[id]){
+						Array.prototype.push.apply(trackdata[id], gv.data[id]);
+					}else{
+						trackdata[id] = gv.data[id];
+					}
+				}
+			});
 			
 			//-------------------------------------------------------------------
 			function drawCurrentPos(id, pos) {
@@ -109,21 +128,29 @@
 					"direction: " + pos.direction + "°"
 				);
 
-				if (pos.speed > 0){
-					var d = pos.speed * 60 * 10;
-					var path = new L.polyline(
-						[
-							[ pos.lat, pos.lng ],
-							directFrom(pos.lat, pos.lng, d, pos.direction)
-						],
-						{
-							color: "#4591c5",
-							weight: 3,
-							opacity: 1,
-						}
-					).addTo(map);
+				var d = pos.speed * 60 * 10;
+				var path = new L.polyline(
+					[
+						[ pos.lat, pos.lng ],
+						directFrom(pos.lat, pos.lng, d, pos.direction)
+					],
+					{
+						color: "#4591c5",
+						weight: 3,
+						opacity: 1,
+					}
+				).addTo(map);
+				current_pos[id] = { marker: marker, bng: path };
+			}
 
-				}
+			function moveCurrentPos(id, pos){
+				if (!current_pos[id]) return drawCurrentPos(id, pos); 
+
+				current_pos[id].marker.setLatLng([pos.lat, pos.lng]);
+				current_pos[id].bng.setLatLngs([
+					[pos.lat, pos.lng],
+					directFrom(pos.lat, pos.lng, pos.speed * 60 * 10, pos.direction)
+				]);
 			}
 
 

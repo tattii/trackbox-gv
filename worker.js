@@ -2,7 +2,8 @@
 
 const redis = require('redis').createClient(process.env.REDIS_URL);
 const http = require('http');
-const socketIO = require('socket.io');
+const socketIOClient = require('socket.io-client');
+const socket = socketIOClient.connect('http://localhost:3000');
 
 const gv_url = 'http://balloon.greenwalkers.com/cgi-bin/sr.cgi?gotpos=';
 
@@ -39,6 +40,8 @@ function get() {
 					redis.set('gv:lastPos', gv.lastPos);
 					redis.set('gv:trackdata', JSON.stringify(trackdata));
 					console.log('update: ' + gv.lastPos);
+
+					socket.send('update-data', JSON.stringify(gv.data));
 				});
 			});
 		}).on('error', (e) => {
