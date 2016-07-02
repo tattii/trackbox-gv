@@ -11,7 +11,7 @@ const redis = require('redis').createClient(process.env.REDIS_URL);
 
 const app = express();
 const server = app
-  .use((req, res) => res.sendFile(INDEX) )
+  .get('/', (req, res) => res.sendFile(INDEX) )
   .use(express.static('public'))
   .listen(PORT, () => console.log(`Listening on ${ PORT }`));
 
@@ -21,6 +21,9 @@ io.on('connection', (socket) => {
   console.log('Client connected');
 
   // send current data
+  redis.get('gv:trackdata', (err, val) => {
+    socket.emit('init', val);
+  });
 
   socket.on('disconnect', () => console.log('Client disconnected'));
 });

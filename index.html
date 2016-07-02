@@ -1,14 +1,309 @@
+<!DOCTYPE html>
 <html>
-  <body>
-    <p id='server-time'></p>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      var socket = io();
-      var el = document.getElementById('server-time');
+<head>
+	<meta charset=utf-8 />
+	<title>TrackBox</title>
+	<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+	<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/uikit/2.8.0/css/uikit.almost-flat.min.css" />
+	<link rel="stylesheet" href="/app.css" />
+</head>
 
-      socket.on('time', function(timeString) {
-        el.innerHTML = 'Server time: ' + timeString;
-      });
-    </script>
-  </body>
+<body>
+	<div id="container">
+		<div class="uk-button-dropdown" data-uk-dropdown>
+			<button id="plane" class="uk-icon-button uk-icon-paper-plane-o"></button>
+		</div>
+
+		<div id="file-name">Trackbox / GoalView</div>
+
+		<div id="map"></div>
+
+		<div id="bottom"></div>
+	</div>
+
+	<div id="overlay"></div>
+	<div id="loading"></div>
+
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+	<script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/2.8.0/js/uikit.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+	<script>
+		$(function(){
+			var trackdata;
+			var isMobile;
+			var host = "http://trackbox.herokuapp.com";
+			var created = 'created by <a href="https://twitter.com/tattii88">@tattii88</a>';
+			var min_alt = 0;
+			var max_alt = 1500;
+
+			// onload ----------------------------------------------------------
+			var googleHybrid = L.tileLayer(
+				"http://mt{s}.google.com/vt/lyrs=y&hl=ja&x={x}&y={y}&z={z}",
+				{	
+					subdomains: [0,1,2,3],
+					detectRetina: true
+				}
+			);
+
+			var map = L.map('map', {
+				//center: [36.204824, 138.252924],
+				//zoom: 5,
+				center: [54.54, 23.37],
+				zoom: 11,
+				layers: [ googleHybrid ],
+			});
+
+
+			if ( L.Browser.mobile || $(document).width() < 640 ){
+				isMobile = true;
+				map.zoomControl.removeFrom(map);
+				map.attributionControl.removeFrom(map);
+
+			}else{
+				isMobile = false;
+				map.zoomControl.setPosition("bottomleft");
+				map.attributionControl.setPrefix(false);
+				map.attributionControl.addAttribution(created);
+			}
+      
+			// socket.io --------------------------------------------------------
+			var socket = io();
+
+			socket.on('init', function(data) {
+				console.log(data);
+				trackdata = JSON.parse(data);
+				for (var id in trackdata) {
+					drawPath(id, trackdata[id]);
+				}
+			});
+
+			
+			//-------------------------------------------------------------------
+			function pad(n) { return n<10 ? '0'+n : n; }
+
+			// haversine formula 
+			// ref. http://www.movable-type.co.uk/scripts/latlong.html
+			function directTo(p1, p2){
+				var λ1 = p1.lng / 180 * Math.PI;
+				var λ2 = p2.lng / 180 * Math.PI;
+				var φ1 = p1.lat / 180 * Math.PI;
+				var φ2 = p2.lat / 180 * Math.PI;
+
+				var y = Math.sin(λ2 - λ1) * Math.cos(φ2);
+				var x = Math.cos(φ1) * Math.sin(φ2) - 
+					    Math.sin(φ1) * Math.cos(φ2) * Math.cos(λ2 - λ1);
+				var brng = Math.atan2(y, x) / Math.PI * 180;
+				return (brng + 360) % 360;
+			}
+
+			function drawPath(id, track) {
+				var path2 = L.polyline([[ track[0].lat, track[1].lng ]], { wight: 0 });
+
+
+				for (var i = 0; i < track.length - 1; i++){
+					var path = new L.polyline(
+						[
+							[ track[ i ].lat, track[ i ].lng ],
+							[ track[i+1].lat, track[i+1].lng ]
+						],
+						{
+							color: gradient( (max_alt - min_alt == 0) ? 0 : (track[i].altitude - min_alt) / (max_alt - min_alt) ),
+							weight: 5,
+							opacity: 1,
+						}
+					).addTo(map);
+
+					path2.addLatLng([ track[i+1].lat, track[i+1].lng ]);
+
+					var date = new Date(track[i].time);
+					path.bindPopup(
+						id + "<br>" +
+						pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds()) + "<br>" +
+						"altitude: " + Math.round(track[i].altitude * 3.2808) + " ft<br>" +
+						"speed: " + track[i].speed + " m/s<br>" +
+						"direction: " + track[i].direction + "°"
+					);
+
+				}
+
+				/*
+				// summary
+				var last = track.length - 1;
+				var distance = L.latLng([ track[0].lat, track[0].lng ]).distanceTo([ track[last].lat, track[last].lng ]);
+				var time = track[last].time - track[0].time;
+				var t = new Date(time);
+				var avg_speed = track_dis / time * 1000;
+
+				$("#time").html(pad(t.getUTCHours()) + ":" + pad(t.getUTCMinutes()) + ":" + pad(t.getUTCSeconds()));
+				$("#track").html( Math.round(track_dis/100) /10 + "<span>km</span>");
+				$("#distance").html( Math.round(distance/100) /10 + "<span>km</span>");
+				$("#avg-speed").html( Math.round(avg_speed*10) /10 + "<span>m/s</span>");
+				$("#max-speed").html( Math.round(max_speed*10) /10 + "<span>m/s</span>");
+				$("#min-alt").html( Math.round(min_alt) + "<span>m</span>");
+				$("#max-alt").html( Math.round(max_alt) + "<span>m</span>");
+				*/
+
+				//drawChart(data_alt, data_speed, track);
+			}
+
+
+
+			//-----------------------------------------------------------------
+			var grad = [
+				{ value:0.00, r:0,   g:0,   b:255 },
+				{ value:0.25, r:0,   g:255, b:255 },
+				{ value:0.50, r:0,   g:255, b:0   },
+				{ value:0.75, r:255, g:255, b:0   },
+				{ value:1.00, r:255, g:0,   b:0   }
+			];
+
+			function gradient(x) {
+				var pivot;
+				for (pivot = 1; pivot < grad.length - 1; pivot++){
+					if ( x <= grad[pivot].value ){
+						break;
+					}
+				}
+
+				var l = grad[pivot-1];
+				var r = grad[pivot];
+
+				var delta = (x - grad[pivot-1].value) / (grad[pivot].value - grad[pivot-1].value);
+
+				var color = {
+					r: Math.min(Math.round( (r.r - l.r) * delta + l.r ), 255),
+					g: Math.min(Math.round( (r.g - l.g) * delta + l.g ), 255),
+					b: Math.min(Math.round( (r.b - l.b) * delta + l.b ), 255)
+				};
+
+				return "#" + _doubleHex(color.r) + _doubleHex(color.g) + _doubleHex(color.b);
+			}
+
+			function _doubleHex(x) {
+				return ( x < 16 ) ? "0" + x.toString(16) : x.toString(16);
+			}
+
+
+			//-----------------------------------------------------------------
+			function drawChart(data_alt, data_speed, track) {
+				var marker = L.marker();
+			
+				if ( $(document).height() <= 460 ){
+					$("#chart-container").css({ height: "180px" });
+				}
+
+				$('#chart').highcharts({
+					chart: {
+						zoomType: 'x',
+						width: (isMobile) ? $(document).width() : $(document).width() - 250,
+						height: ($(document).height() <= 460 ) ? 160 
+									            : (isMobile) ? 200
+												             : 190
+					},
+					title: {
+						text: ""  
+					},
+					xAxis: {
+						type: 'datetime',
+					},
+					yAxis: [{
+						title: "",
+						labels: {
+							align: "left",
+							x: 0,
+							y: -2,
+							style: { "font-size": 7 }
+						},
+						min: 0
+					},{
+						title: "",
+						labels: {
+							align: "left",
+							x: -10,
+							y: -2,
+							style: { "font-size": 7 }    
+						},
+						opposite: true,
+						min: 0,
+						minRange: 10
+					}],
+					legend: {
+						enabled: !isMobile,
+						align: "left",
+						layout: "vertical",
+						verticalAlign: "middle"
+					},
+					credits: {
+						enabled: false  
+					},
+					tooltip: {
+						xDateFormat: '%H:%M:%S',
+						shared: true
+					},
+
+					series: [{
+						type: 'line',
+						name: 'altitude(m)',
+						color: "#3498db",
+						yAxis: 0,
+						marker: {
+							enabled: false
+						},
+						data: data_alt
+					},{
+						type: 'line',
+						name: 'speed(m/s)',
+						color: "#e74c3c",
+						yAxis: 1,
+						marker: {
+							enabled: false
+						},
+						data: data_speed
+					}],
+
+					plotOptions: {
+						series: {
+							point: {
+								events: (isMobile) ? {} : {
+									mouseOver: function() {
+										var t = this.x;
+										for (var i = 0; i < track.length-1; i++){
+											if ( track[i].date == t ){
+												break;
+											}
+										}
+										var target = track[i];
+
+										marker.setLatLng([target.lat, target.lng]);
+										marker.addTo(map);
+									},
+									mouseOut: function() {
+										map.removeLayer(marker);
+									}
+								}
+							}
+						}
+					}
+
+				});
+			}
+
+
+		});
+	</script>
+
+
+	<script>
+		(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+				(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+			m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+		})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+		ga('create', 'UA-57478992-1', 'auto');
+		ga('send', 'pageview');
+	</script>
+</body>
 </html>

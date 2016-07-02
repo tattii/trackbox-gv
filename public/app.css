@@ -1,0 +1,229 @@
+html, body { margin:0; padding:0; -webkit-touch-callout:none; }
+
+#container {
+	width: 100%; height: 100%;
+}
+
+
+#plane {
+	position: absolute;
+	top: 10px; left: 20px;
+	width: 50px; height: 50px;
+	border: none;
+	z-index: 10000;
+	font-size: 24px;
+	padding: 0;
+	text-align: center;
+	background: #00BCD4;
+	color: #fff;
+	box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+#dropdown {
+	position: absolute;
+	top: 45px; left: 45px;
+}
+
+#dropdown i {
+	width: 30px;
+	padding-right: 10px;
+	text-align: center;
+}
+
+
+#file-name {
+	position: absolute;
+	top: 38px; left: 80px;
+	z-index: 100;
+	font-size: 20px;
+	color: #fff;
+}
+
+
+#map {
+	position: absolute;
+	top: 0; bottom: 0;
+	width: 100%;
+}
+
+#bottom {
+	position: absolute;
+	bottom: 0; height: 0;
+	width: 100%;
+	box-shadow: 0 -13px 10px -10px rgba(0, 0, 0, 0.35);
+}
+
+
+
+/* bottom ----------------------------*/
+#bottom #summary {
+	position: absolute;
+	left: 0; width: 220px;
+}
+
+#bottom #chart-container {
+	position: absolute;
+	left: 250px; right: 0;
+	padding-top: 10px;
+}
+
+#bottom #chart {
+	width: 100%;
+}
+
+#bottom #summary table {
+	margin-top: 4px;
+	margin-bottom: 0;
+}
+
+#bottom #summary tr {
+	line-height: 21px;
+}
+
+
+
+
+
+
+.plane-modal {
+	position: absolute;
+	top: 50px; left: 50px;
+	margin: 0;
+	width: 400px;
+}
+
+
+
+/* file modal -----------------------*/
+#file {
+	display: none;
+}
+
+#file-modal-dialog h3 {
+	margin-left: 10px;
+}
+
+#file-modal-dialog button {
+	margin-left: 220px;
+}
+
+.uk-modal #plane{
+	top: 20px;
+}
+
+
+
+
+/* info modal -----------------------*/
+#graph-button {
+	position: absolute;
+	bottom: 10px; left: 10px;
+	width: 40px; height: 40px;
+	border: none;
+	z-index: 1000;
+	padding: 0;
+	font-size: 20px;
+	box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+#info-modal-dialog {
+	position: absolute;
+	top: 0; left: 0; right: 0;
+	margin: 0;
+	padding: 0 10px;
+	box-sizing: inherit;
+	width: 100%; height: 100%;
+	border-radius: 0;
+}
+
+#info-modal-dialog .uk-close {
+	margin-top: 10px;
+	margin-right: 0px;
+	font-size: 20px;
+}
+
+#info-modal-dialog h3 {
+	margin-top: 10px;
+	margin-left: 10px
+	margin-bottom: 10px;
+}
+
+
+#info-modal-dialog #chart-continer {
+	width: 100%; height: 200px;
+	margin-top: 0;
+}
+
+#info-modal-dialog #chart {
+	margin-left: -10px;
+}
+
+
+#link-modal input {
+	width: 360px;
+}
+
+#share-modal-dialog button {
+	margin-left: 230px;
+	width: 120px;
+}
+
+
+
+/* summary --------------------------*/
+#summary td, #summary th {
+	font-size: 12px;
+	padding: 3px 15px;
+}
+
+#summary td {
+	text-align: right;
+}
+
+#summary table span {
+	font-size: 10px;
+	padding-left: 0.2em;
+}
+
+
+/* mobile ---------------------------*/
+@media screen and (max-width: 640px) {
+	#plane {
+		top: 10px; left: 10px;
+		width: 45px; height: 45px;
+		font-size: 20px;
+	}
+	#file-name {
+		top: 35px; left: 62px;
+		font-size: 18px;
+	}
+}
+
+
+#loading {
+	position: absolute;
+	width: 100px; height: 120px;
+	top: 50%; left: 50%;
+	margin-left: -50px; margin-top: -50px;
+}
+
+#overlay {
+	display: none;
+	position: absolute;
+	top: 0; bottom: 0; left: 0; right: 0;
+	background: rgba(0,0,0,.7);
+}
+
+#footer {
+	position: absolute;
+	bottom: 5px;
+	left: 50%;
+	margin-left: -54px;
+	text-align: center;
+	font-size: 12px;
+	color: #666;
+}
+
+#footer a {
+	color: #666;
+}

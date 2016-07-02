@@ -49,7 +49,7 @@ function get() {
 
 
 function parseGV(file) {
-	var log = [];
+	var log = {};
 	var data = file.split("\n");
 	var status = parseInt(data[0]);
 	var lastPos = parseInt(data[1]);
@@ -75,7 +75,7 @@ function parseGV(file) {
 					log[parsed.RMC.id] = [];
 				}
 				log[parsed.RMC.id].push({
-					time: parseInt(parsed.RMC.time),
+					time: parseInt(parsed.RMC.time) * 1000,
 					lat: parsed.RMC.lat,
 					lng: parsed.RMC.lng,
 					speed: parseInt(parsed.RMC.speed * 10) / 10,
