@@ -5,41 +5,44 @@ const http = require('http');
 const socketIO = require('socket.io');
 
 const gv_url = 'http://balloon.greenwalkers.com/cgi-bin/sr.cgi?gotpos=';
-let lastPos = 0;
 
 get();
 
 function get() {
-	http.get(gv_url + lastPos, (res) => {
-		let body = '';
-		res.setEncoding('utf8');
+	redis.get('gv:lastPos', function (err, lastPos){
+		if (!lastPos) lastPos = 0;
+		console.log(gv_url + lastPos);
+		http.get(gv_url + lastPos, (res) => {
+			let body = '';
+			res.setEncoding('utf8');
 
-		res.on('data', (chunk) => {
-			body += chunk;
-		});
-
-		res.on('end', (res) => {
-			let gv = parseGV(body);
-			redis.set('gv:lastPos', lastPos);
-			redis.get('gv:trackdata', function (err, val){
-				let trackdata = JSON.parse(val);
-				if (trackdata){
-					for (let id in gv) {
-						if (trackdata[id]){
-							Array.prototype.push.apply(trackdata[id], gv[id]);
-						}else{
-							trackdata[id] = gv[id];
-						}
-					}
-				}else{
-					trackdata = gv;
-				}
-				redis.set('gv:trackdata', JSON.stringify(trackdata));
-				console.log('update: ' + lastPos);
+			res.on('data', (chunk) => {
+				body += chunk;
 			});
+
+			res.on('end', (res) => {
+				let gv = parseGV(body);
+				redis.get('gv:trackdata', function (err, val){
+					let trackdata = JSON.parse(val);
+					if (trackdata){
+						for (let id in gv.data) {
+							if (trackdata[id]){
+								Array.prototype.push.apply(trackdata[id], gv.data[id]);
+							}else{
+								trackdata[id] = gv.data[id];
+							}
+						}
+					}else{
+						trackdata = gv.data;
+					}
+					redis.set('gv:lastPos', gv.lastPos);
+					redis.set('gv:trackdata', JSON.stringify(trackdata));
+					console.log('update: ' + gv.lastPos);
+				});
+			});
+		}).on('error', (e) => {
+			console.log(e.message);
 		});
-	}).on('error', (e) => {
-		console.log(e.message);
 	});
 }
 
@@ -49,7 +52,7 @@ function parseGV(file) {
 	var log = [];
 	var data = file.split("\n");
 	var status = parseInt(data[0]);
-	lastPos = parseInt(data[1]);
+	var lastPos = parseInt(data[1]);
 
 	for (var i = 2; i < data.length; i++ ){
 		if ( data[i].match(/MARK/) ){
@@ -82,7 +85,7 @@ function parseGV(file) {
 			}
 		}
 	}
-	return log;
+	return { lastPos: lastPos, data: log };
 }
 
 // RMC: time, status, lat, N/S, lng, E/W, speed, direction, date, ...
