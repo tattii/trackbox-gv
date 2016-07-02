@@ -7,6 +7,9 @@
 	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
 	<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/uikit/2.8.0/css/uikit.almost-flat.min.css" />
 	<link rel="stylesheet" href="/app.css" />
+	<style>
+		.arrow svg {-webkit-filter: drop-shadow(3px 3px 2px rgba(0,0,0,0.3));}
+	</style>
 </head>
 
 <body>
@@ -33,6 +36,7 @@
 	<script>
 		$(function(){
 			var trackdata;
+			var current_pos = {};
 			var isMobile;
 			var host = "http://trackbox.herokuapp.com";
 			var created = 'created by <a href="https://twitter.com/tattii88">@tattii88</a>';
@@ -73,15 +77,72 @@
 			var socket = io();
 
 			socket.on('init', function(data) {
-				console.log(data);
 				trackdata = JSON.parse(data);
 				for (var id in trackdata) {
+					drawCurrentPos(id, trackdata[id][trackdata[id].length - 1]);
 					drawPath(id, trackdata[id]);
 				}
 			});
 
 			
 			//-------------------------------------------------------------------
+			function drawCurrentPos(id, pos) {
+				var arrow = L.divIcon({
+					className: "arrow",
+					iconSize: [40, 40],
+					iconAnchor: [20, 20],
+					html: '<svg width="40" height="40">' +
+						'<g id="arrow">' +
+						'<g transform="scale(0.625)">' +
+						'<circle cx="32" cy="32" r="12" stroke="#4591c5" fill="#1faee3" stroke-width="1"/>' +
+						'</g></g>' +
+						'</svg>'
+				});
+				var marker = L.marker([pos.lat, pos.lng], {icon: arrow});
+				marker.addTo(map);
+				var date = new Date(pos.time);
+				marker.bindPopup(
+					id + "<br>" +
+					pad(date.getHours()) + ":" + pad(date.getMinutes()) + ":" + pad(date.getSeconds()) + "<br>" +
+					"altitude: " + Math.round(pos.altitude * 3.2808) + " ft<br>" +
+					"speed: " + pos.speed + " m/s<br>" +
+					"direction: " + pos.direction + "°"
+				);
+
+				if (pos.speed > 0){
+					var d = pos.speed * 60 * 10;
+					var path = new L.polyline(
+						[
+							[ pos.lat, pos.lng ],
+							directFrom(pos.lat, pos.lng, d, pos.direction)
+						],
+						{
+							color: "#4591c5",
+							weight: 3,
+							opacity: 1,
+						}
+					).addTo(map);
+
+				}
+			}
+
+
+			function directFrom(lat, lon, d, deg) {
+				var R = 6378100;
+				var lat1 = lat / 180 * Math.PI;
+				var lon1 = lon / 180 * Math.PI;
+				var deg1 = deg / 180 * Math.PI;
+				var lat2 = Math.asin( Math.sin(lat1)*Math.cos(d/R) +
+						 Math.cos(lat1)*Math.sin(d/R)*Math.cos(deg1))
+
+				var lon2 = lon1 + Math.atan2(Math.sin(deg1)*Math.sin(d/R)*Math.cos(lat1),
+								 Math.cos(d/R)-Math.sin(lat1)*Math.sin(lat2));	
+				return new L.latLng(
+					lat2 * 180 / Math.PI,		
+					lon2 * 180 / Math.PI		
+				);
+			}
+
 			function pad(n) { return n<10 ? '0'+n : n; }
 
 			// haversine formula 

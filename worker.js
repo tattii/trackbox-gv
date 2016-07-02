@@ -6,7 +6,8 @@ const socketIO = require('socket.io');
 
 const gv_url = 'http://balloon.greenwalkers.com/cgi-bin/sr.cgi?gotpos=';
 
-get();
+//get();
+setInterval(get, 10000);
 
 function get() {
 	redis.get('gv:lastPos', function (err, lastPos){
